@@ -3,6 +3,11 @@ using System.Threading.Tasks;
 using Microsoft.Owin;
 using Owin;
 using System.Web.Http;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
+using System.Text;
 
 [assembly: OwinStartup(typeof(MyWebApi.Startup))]
 
@@ -21,6 +26,24 @@ namespace MyWebApi
                 defaults: new { year = RouteParameter.Optional }
             );
             app.UseWebApi(Config);
+            // app.Use;
+
+            TakeRequest(app);
+        }
+
+        public void TakeRequest(IAppBuilder app)
+        {
+            app.Run(async context =>
+            {
+                var formData = await context.Request.GetBodyParameters();
+                var data = int.Parse(formData["year"]);
+                var IsLeap = ((data % 4 == 0 && data % 100 != 0) || data % 400 == 0);
+                JObject responseJSON = JObject.Parse(@"{'IsLeap': '" + IsLeap + @"'}");
+                byte[] buf = Encoding.UTF8.GetBytes(responseJSON.ToString());
+                context.Response.ContentLength = buf.Length;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(buf);
+            });
         }
     }
 }
